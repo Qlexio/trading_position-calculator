@@ -5,6 +5,9 @@
 Turn a LibreOffice Calc `.ods` trading-position calculator into a locally hosted
 web application.
 
+The reference spreadsheet is `reference.ods` in the repository root. It is the
+authority for calculation behavior.
+
 ## Scope
 
 - The app is for a single user and runs on the user's computer.
@@ -50,5 +53,10 @@ web application.
 
 - Inspect the existing project before making changes.
 - Make focused changes that fit the agreed scope.
-- Do not process or modify the `.ods` file unless the user asks.
+- `reference.ods` is internal documentation. Reading it to establish and
+  verify baseline calculation behavior is expected and authorized; do not modify
+  the file.
+- `reference.ods` is listed in `.gitignore` and must never be committed,
+  pushed, or shared outside this machine. Do not copy its contents into
+  tracked files, logs, or commits.
 - Ask before making significant scope, behavior, or dependency changes.
