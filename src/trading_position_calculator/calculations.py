@@ -81,7 +81,6 @@ class Scenario:
     """Résultat d'un scénario d'entrée (achat ou vente)."""
 
     direction: int
-    label: str
     entry_price: float
     stop_loss: float
     take_profit: float
@@ -156,7 +155,6 @@ def compute_scenario(params: Parameters, direction: int) -> Scenario:
 
     return Scenario(
         direction=direction,
-        label="Achat (buy stop)" if direction == BUY else "Vente (sell stop)",
         entry_price=entry,
         stop_loss=stop_loss,
         take_profit=take_profit,

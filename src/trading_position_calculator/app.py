@@ -6,6 +6,7 @@ résultats. Aucune logique de calcul ici — tout passe par ``calculations.py``.
 
 from __future__ import annotations
 
+import math
 from fractions import Fraction
 from pathlib import Path
 
@@ -59,16 +60,21 @@ def _number(value: float, decimals: int) -> str:
     return _swap(f"{value:,.{decimals}f}")
 
 
+def _usable(value: float | None) -> bool:
+    """Une valeur absente ou non finie n'a pas de représentation affichable."""
+    return value is not None and math.isfinite(value)
+
+
 def fmt_price(value: float | None) -> str:
     """Prix : 5 décimales."""
-    if value is None:
+    if not _usable(value):
         return EMPTY
     return _number(value, 5)
 
 
 def fmt_money(value: float | None) -> str:
     """Montant en dollars : 2 décimales."""
-    if value is None:
+    if not _usable(value):
         return EMPTY
     text = _number(value, 2)
     return f"{text} $" if not text.startswith("-") else f"-{text[1:]} $"
@@ -76,7 +82,7 @@ def fmt_money(value: float | None) -> str:
 
 def fmt_percent(value: float | None) -> str:
     """Pourcentage : la valeur reçue est une fraction (0.01 = 1 %)."""
-    if value is None:
+    if not _usable(value):
         return EMPTY
     scaled = value * 100
     text = _number(scaled, 2)
@@ -85,15 +91,14 @@ def fmt_percent(value: float | None) -> str:
 
 def fmt_ratio(value: float | None) -> str:
     """Ratio, sans suffixe."""
-    if value is None:
+    if not _usable(value):
         return EMPTY
-    text = _number(value, 2)
-    return text if not text.startswith("-") else f"-{text[1:]}"
+    return _number(value, 2)
 
 
 def fmt_quantity(value: float | None) -> str:
     """Quantité (volume, contrats) : sans zéros de fin, décimales conservées."""
-    if value is None:
+    if not _usable(value):
         return EMPTY
     text = f"{value:,.5f}"
     if "." in text:
@@ -198,13 +203,13 @@ def fmt_trade_fraction(value: float | None) -> str:
 
 
 def describe_win_rate(scenario) -> str:
-    """Décrit le taux de réussite minimum d'un scénario."""
+    """Formule à employer pour le taux de réussite minimum d'un scénario."""
     if scenario.min_win_rate is None:
         if scenario.realistic_risk == 0:
-            return "non défini (volume nul)"
+            return "le seuil n'est pas défini (volume nul)"
         if scenario.real_rr == -1:
-            return "non défini (R/R réel = -1)"
-        return "non défini"
+            return "le seuil n'est pas défini (R/R réel = -1)"
+        return "le seuil n'est pas défini"
     fraction = fmt_trade_fraction(scenario.min_win_rate)
     if fraction:
         return f"{fmt_percent(scenario.min_win_rate)} ({fraction} trades)"
@@ -214,22 +219,51 @@ def describe_win_rate(scenario) -> str:
 def build_win_rate(plan: Plan) -> dict[str, str]:
     """Bloc « taux de réussite minimum », présenté hors du tableau de résultats."""
     buy, sell = plan.buy, plan.sell
-    buy_text, sell_text = describe_win_rate(buy), describe_win_rate(sell)
 
-    if buy_text == sell_text:
-        detail = f"Il faut gagner {buy_text} pour ne pas perdre d'argent."
+    if buy.min_win_rate is None and sell.min_win_rate is None:
+        detail = "Le taux de réussite minimum n'est pas défini pour ce trade."
+    elif buy.min_win_rate is None or sell.min_win_rate is None:
+        if buy.min_win_rate is None:
+            missing, missing_label = buy, "l'achat"
+            defined, defined_label = sell, "la vente"
+        else:
+            missing, missing_label = sell, "la vente"
+            defined, defined_label = buy, "l'achat"
+        if missing.realistic_risk == 0:
+            reason = "volume nul"
+        elif missing.real_rr == -1:
+            reason = "R/R réel = -1"
+        else:
+            reason = "aucun seuil défini"
+        detail = (
+            f"Le taux de réussite minimum n'est pas défini pour {missing_label} ({reason}) ; "
+            f"pour {defined_label}, il faut gagner {describe_win_rate(defined)} pour ne pas "
+            "perdre d'argent."
+        )
     else:
-        detail = f"Il faut gagner {buy_text} pour l'achat, et {sell_text} pour la vente."
+        buy_text, sell_text = describe_win_rate(buy), describe_win_rate(sell)
+        if buy_text == sell_text:
+            detail = f"Il faut gagner {buy_text} pour ne pas perdre d'argent."
+        else:
+            detail = f"Il faut gagner {buy_text} pour l'achat, et {sell_text} pour la vente."
+
+    rate = buy.min_win_rate if buy.min_win_rate is not None else sell.min_win_rate
+    if rate is not None and rate >= 0.5:
+        explanation = (
+            "Un taux élevé est exigeant : 80 %, c'est 4 trades gagnants sur 5 pour ne "
+            "pas perdre d'argent."
+        )
+    else:
+        explanation = (
+            "Un taux bas est confortable : 25 %, c'est 1 trade gagnant sur 4 pour ne pas "
+            "perdre d'argent."
+        )
 
     return {
         "buy": fmt_percent(buy.min_win_rate),
         "sell": fmt_percent(sell.min_win_rate),
         "detail": detail,
-        "explanation": (
-            "Un taux élevé est exigeant : 80 %, c'est 4 trades gagnants sur 5 pour ne "
-            "pas perdre d'argent. Un taux bas est confortable : 25 %, c'est 1 trade "
-            "gagnant sur 4."
-        ),
+        "explanation": explanation,
     }
 
 
@@ -247,7 +281,7 @@ def build_notes(plan: Plan) -> list[str]:
     return notes
 
 
-def _context(request, values, errors, plan=None):
+def _context(request, values, errors, plan=None, field_errors=None):
     """Contexte de rendu commun aux deux routes."""
     return {
         "request": request,
@@ -255,6 +289,7 @@ def _context(request, values, errors, plan=None):
         "fields": FIELDS_BY_NAME,
         "values": {name: fmt_input(value) for name, value in values.items()},
         "errors": errors,
+        "field_errors": field_errors or {},
         "plan": plan,
         "derived": (
             [
@@ -288,7 +323,9 @@ async def calculate(request: Request):
         params = parse_parameters(values)
     except ValidationError as exc:
         return templates.TemplateResponse(
-            request=request, name="index.html", context=_context(request, values, exc.errors)
+            request=request,
+            name="index.html",
+            context=_context(request, values, exc.errors, field_errors=exc.field_errors),
         )
 
     plan = compute_plan(params)

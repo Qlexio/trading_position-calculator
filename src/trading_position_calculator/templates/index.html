@@ -107,6 +107,8 @@
     .winrate-values strong { font-size: 1.3rem; margin-left: .35rem; }
     .winrate p { margin: .35rem 0 0; }
     .winrate .hint { color: var(--muted); font-size: .9rem; }
+    .field-error { margin: .25rem 0 0; color: var(--warn); font-size: .85rem; }
+    input[aria-invalid="true"] { border-color: var(--warn); }
     .notes { margin-top: 1rem; padding-left: 1.2rem; color: var(--muted); font-size: .9rem; }
     footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; }
   </style>
@@ -136,7 +138,11 @@
             name="{{ name }}"
             value="{{ values[name] }}"
             title="pas de {{ field.step|replace('.', ',') }}"
+            {% if field_errors.get(name) %}aria-invalid="true" aria-describedby="error-{{ name }}"{% endif %}
             required>
+          {% if field_errors.get(name) %}
+          <p class="field-error" id="error-{{ name }}">{{ field_errors[name]|join(' ') }}</p>
+          {% endif %}
         </div>
         {% endfor %}
       </div>

@@ -61,17 +61,30 @@ FIELDS_BY_NAME = {f.name: f for f in FIELDS}
 
 
 class ValidationError(Exception):
-    """Saisie invalide : ``errors`` contient les messages, en français."""
+    """Saisie invalide : ``errors`` contient les messages, en français.
 
-    def __init__(self, errors: list[str]) -> None:
+    ``field_errors`` associe chaque champ aux messages qui le concernent,
+    pour que la page puisse les afficher à côté de la saisie.
+    """
+
+    def __init__(self, errors: list[str], field_errors: dict[str, list[str]] | None = None) -> None:
         super().__init__("; ".join(errors))
         self.errors = errors
+        self.field_errors = field_errors or {}
+
+
+#: Séparateurs de milliers acceptés à la saisie, comme ceux affichés par l'app.
+THOUSANDS_SEPARATORS = ("\u00a0", "\u202f", "\u2009", " ")
 
 
 def _check(field: Field, raw: str) -> float:
     text = (raw or "").strip()
+    for separator in THOUSANDS_SEPARATORS:
+        text = text.replace(separator, "")
     if not text:
         raise ValidationError([f"{field.label} : champ obligatoire."])
+    if "_" in text:
+        raise ValidationError([f"{field.label} : doit être un nombre."])
     try:
         value = float(text.replace(",", "."))
     except ValueError:
@@ -102,41 +115,51 @@ def parse_parameters(data: Mapping[str, object]) -> Parameters:
     """
     values: dict[str, float] = {}
     errors: list[str] = []
+    field_errors: dict[str, list[str]] = {}
     for field in FIELDS:
         try:
             values[field.name] = _check(field, str(data.get(field.name, "")))
         except ValidationError as exc:
             errors.extend(exc.errors)
+            field_errors.setdefault(field.name, []).extend(exc.errors)
     if not errors:
-        errors.extend(_check_combinations(values))
+        combination_errors, combination_fields = _check_combinations(values)
+        errors.extend(combination_errors)
+        for name, message in combination_fields:
+            field_errors.setdefault(name, []).append(message)
     if errors:
-        raise ValidationError(errors)
+        raise ValidationError(errors, field_errors)
     return Parameters(**values)
 
 
-def _check_combinations(values: dict[str, float]) -> list[str]:
+def _check_combinations(values: dict[str, float]) -> tuple[list[str], list[tuple[str, str]]]:
     """Règles de cohérence portant sur plusieurs champs à la fois.
 
     Ces deux combinaisons rendent un calcul indéfini (division par
     zéro) ; elles sont refusées plutôt que d'inventer un comportement non défini.
     """
     errors: list[str] = []
+    owners: list[tuple[str, str]] = []
 
     risk_per_pip = values["stop_loss_pips"] + values["spread_pips"] + values["slippage_pips"]
     if risk_per_pip == 0:
-        errors.append(
+        message = (
             "Stop loss, spread et slippage ne peuvent pas être tous nuls : le volume "
             "maximal lié au risque est une division par zéro."
         )
+        errors.append(message)
+        owners.append(("stop_loss_pips", message))
 
     entry_price = values["current_price"] - values["entry_distance_pips"] * values["pip_size"]
     if entry_price <= 0:
-        errors.append(
+        message = (
             "Le prix d'entrée de vente doit rester strictement positif : réduisez la "
             "distance d'entrée ou la taille du pip, ou augmentez le cours actuel."
         )
+        errors.append(message)
+        owners.append(("entry_distance_pips", message))
 
-    return errors
+    return errors, owners
 
 
 def default_values() -> dict[str, str]:

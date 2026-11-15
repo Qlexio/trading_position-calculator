@@ -14,3 +14,7 @@ reference.ods
 
 # Extrait du modèle de référence (régénéré par tools/extract_reference.py)
 tests/reference.json
+
+# Outils (s'auto-ignorent aussi via leur .gitignore interne)
+.pytest_cache/
+.ruff_cache/

@@ -87,6 +87,7 @@ def main() -> None:
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--sheet", default=None, help="ne garder qu'un modèle")
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--force", action="store_true", help="écraser un fichier existant")
     args = parser.parse_args()
 
     data = extract(args.source)
@@ -95,6 +96,8 @@ def main() -> None:
 
     text = json.dumps(data, ensure_ascii=False, indent=1)
     if args.output:
+        if args.output.exists() and not args.force:
+            raise SystemExit(f"refuse d'écraser {args.output} (utiliser --force)")
         args.output.write_text(text + "\n", encoding="utf-8")
     else:
         print(text)
