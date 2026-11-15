@@ -13,8 +13,8 @@ uv sync
 uv run trading-position-calculator
 ```
 
-Puis ouvrir <http://localhost:8000>. Le serveur n'écoute que sur `127.0.0.1` :
-aucune donnée ne quitte la machine.
+Puis ouvrir <http://127.0.0.1:8000>. Le serveur n'écoute que sur cette adresse
+(boucle locale) : aucune donnée ne quitte la machine.
 
 ## Structure
 
@@ -47,6 +47,15 @@ Les calculs reproduisent le comportement du modèle de référence :
 
 Les valeurs sont calculées en précision maximale ; l'arrondi n'intervient qu'à
 l'affichage.
+
+Deux points hérités du modèle, à connaître :
+
+* les deux volumes maximaux du modèle sont affichés en
+  pourcentage dans le modèle, mais utilisés comme des volumes en lots par la
+  formule de calcul du volume ; l'application les affiche donc en lots ;
+* le taux de réussite minimum vaut 1 / (1 + R/R réel). Si le R/R réel est
+  négatif, ce taux dépasse 100 % : le trade a alors une espérance négative et
+  aucun taux de réussite ne le rend rentable.
 
 ### Incertitudes ouvertes
 

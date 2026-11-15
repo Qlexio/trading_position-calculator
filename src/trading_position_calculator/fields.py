@@ -27,12 +27,21 @@ class Field:
     minimum: float
     minimum_inclusive: bool
     maximum: float | None = None
+    maximum_label: str | None = None
 
 
 FIELDS: tuple[Field, ...] = (
     Field("capital", "Capital du compte", "$", "181.31", "0.01", 0, False),
     Field(
-        "risk_per_trade", "Risque par trade", "fraction (0.01 = 1 %)", "0.01", "0.0001", 0, True, 1
+        "risk_per_trade",
+        "Risque par trade",
+        "fraction (0.01 = 1 %)",
+        "0.01",
+        "0.0001",
+        0,
+        True,
+        1,
+        "1 (100 %)",
     ),
     Field("pip_size", "Taille d'un pip (en prix)", "en prix", "0.0001", "0.0001", 0, False),
     Field("contracts_per_lot", "Contrats par lots", "contrats", "100000", "1", 0, False),
@@ -76,7 +85,8 @@ def _check(field: Field, raw: str) -> float:
             raise ValidationError([f"{field.label} : doit être strictement positif."])
         raise ValidationError([f"{field.label} : doit être supérieur ou égal à {field.minimum}."])
     if field.maximum is not None and value > field.maximum:
-        raise ValidationError([f"{field.label} : doit être compris entre 0 et {field.maximum}."])
+        bound = field.maximum_label or str(field.maximum)
+        raise ValidationError([f"{field.label} : ne doit pas dépasser {bound}."])
     return value
 
 
@@ -93,9 +103,36 @@ def parse_parameters(data: Mapping[str, object]) -> Parameters:
             values[field.name] = _check(field, str(data.get(field.name, "")))
         except ValidationError as exc:
             errors.extend(exc.errors)
+    if not errors:
+        errors.extend(_check_combinations(values))
     if errors:
         raise ValidationError(errors)
     return Parameters(**values)
+
+
+def _check_combinations(values: dict[str, float]) -> list[str]:
+    """Règles de cohérence portant sur plusieurs champs à la fois.
+
+    Ces deux combinaisons rendent un calcul indéfini (division par
+    zéro) ; elles sont refusées plutôt que d'inventer un comportement non défini.
+    """
+    errors: list[str] = []
+
+    risk_per_pip = values["stop_loss_pips"] + values["spread_pips"] + values["slippage_pips"]
+    if risk_per_pip == 0:
+        errors.append(
+            "Stop loss, spread et slippage ne peuvent pas être tous nuls : le volume "
+            "maximal lié au risque est une division par zéro."
+        )
+
+    entry_price = values["current_price"] - values["entry_distance_pips"] * values["pip_size"]
+    if entry_price <= 0:
+        errors.append(
+            "Le prix d'entrée de vente doit rester strictement positif : réduisez la "
+            "distance d'entrée ou le prix actuel."
+        )
+
+    return errors
 
 
 def default_values() -> dict[str, str]:

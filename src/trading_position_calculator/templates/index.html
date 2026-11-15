@@ -93,6 +93,7 @@
       border-bottom: 1px solid var(--line);
     }
     tbody tr:hover td, tbody tr:hover th { background: #f6f8fa; }
+    .notes { margin-top: 1rem; padding-left: 1.2rem; color: var(--muted); font-size: .9rem; }
     footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; }
   </style>
 </head>
@@ -115,11 +116,12 @@
             {{ field.label }} <span class="unit">({{ field.unit }})</span>
           </label>
           <input
-            type="number"
+            type="text"
+            inputmode="decimal"
             id="{{ name }}"
             name="{{ name }}"
-            step="{{ field.step }}"
             value="{{ values[name] }}"
+            title="pas : {{ field.step }}"
             required>
         </div>
         {% endfor %}
@@ -176,6 +178,14 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {% if notes %}
+  <ul class="notes">
+    {% for note in notes %}
+    <li>{{ note }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   {% endif %}
 
   <footer>
