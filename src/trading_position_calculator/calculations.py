@@ -36,7 +36,7 @@ SELL = -1
 
 #: Tolérance appliquée avant l'arrondi à la baisse du volume.
 #:
-#: En IEEE 754, 0.03 / 0.01 vaut 2.9999999999999996 : un arrondi à la baisse
+#: En IEEE 754, 0.3 / 0.1 vaut 2.9999999999999996 : un arrondi à la baisse
 #: sans tolérance ferait perdre un lot sur un volume mathématiquement entier.
 FLOOR_EPSILON = 1e-9
 

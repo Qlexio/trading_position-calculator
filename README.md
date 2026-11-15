@@ -59,9 +59,15 @@ Héritages, choix d'arrondi et limites :
 * le taux de réussite minimum vaut 1 / (1 + R/R réel). Si le R/R réel est
   négatif, ce taux dépasse 100 % : le trade a alors une espérance négative et
   aucun taux de réussite ne le rend rentable ;
+* deux des quatre verdicts du contrôle de risque (« Trop risqué » et « Marge
+  insuffisante ») sont inatteignables en pratique : le volume est arrondi à la
+  baisse du plus petit des deux plafonds, donc le risque réel ne peut dépasser
+  le risque max, ni la marge requise la marge disponible, que par l'arrondi
+  flottant. Le contrôle se réduit en pratique à « OK » ou « Volume < minimum ».
+  Le comportement du modèle est conservé tel quel ;
 * le calcul du volume utilise `floor(valeur / pas)` avec une tolérance
   `FLOOR_EPSILON = 1e-9`. Cette tolérance évite qu'une erreur de
-  représentation flottante (par exemple `0.03 / 0.01 = 2.9999999999999996`)
+  représentation flottante (par exemple `0.3 / 0.1 = 2.9999999999999996`)
   fasse perdre un lot. En contrepartie, une valeur réellement à `1e-9` sous un
   entier est arrondie à l'entier supérieur. La tolérance est volontairement
   orientée pour ne jamais sous-estimer le volume.
