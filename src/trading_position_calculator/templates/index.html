@@ -93,6 +93,20 @@
       border-bottom: 1px solid var(--line);
     }
     tbody tr:hover td, tbody tr:hover th { background: #f6f8fa; }
+    .winrate {
+      border: 1px solid var(--accent);
+      border-left-width: 4px;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin: 0 0 1.75rem;
+      background: #fff;
+    }
+    .winrate h3 { margin: 0 0 .35rem; font-size: 1.05rem; color: var(--accent); }
+    .winrate .lead { margin: 0 0 .6rem; font-size: .9rem; }
+    .winrate-values { margin: 0 0 .6rem; display: flex; gap: 1.75rem; font-size: .95rem; }
+    .winrate-values strong { font-size: 1.3rem; margin-left: .35rem; }
+    .winrate p { margin: .35rem 0 0; }
+    .winrate .hint { color: var(--muted); font-size: .9rem; }
     .notes { margin-top: 1rem; padding-left: 1.2rem; color: var(--muted); font-size: .9rem; }
     footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; }
   </style>
@@ -121,7 +135,7 @@
             id="{{ name }}"
             name="{{ name }}"
             value="{{ values[name] }}"
-            title="pas : {{ field.step }}"
+            title="pas de {{ field.step|replace('.', ',') }}"
             required>
         </div>
         {% endfor %}
@@ -153,6 +167,22 @@
     </div>
     {% endfor %}
   </div>
+
+  {% if win_rate %}
+  <section class="winrate">
+    <h3>Taux de réussite minimum</h3>
+    <p class="lead">
+      Part de trades à gagner pour ne pas perdre d'argent. En dessous de ce
+      seuil, la stratégie est perdante.
+    </p>
+    <p class="winrate-values">
+      <span>Achat <strong>{{ win_rate.buy }}</strong></span>
+      <span>Vente <strong>{{ win_rate.sell }}</strong></span>
+    </p>
+    <p>{{ win_rate.detail }}</p>
+    <p class="hint">{{ win_rate.explanation }}</p>
+  </section>
+  {% endif %}
 
   <table>
     <caption>Plan de trade — comparaison achat / vente</caption>

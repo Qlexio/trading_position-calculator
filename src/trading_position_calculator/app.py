@@ -6,6 +6,7 @@ résultats. Aucune logique de calcul ici — tout passe par ``calculations.py``.
 
 from __future__ import annotations
 
+from fractions import Fraction
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -175,25 +176,73 @@ def build_result_groups(plan: Plan) -> list[dict[str, object]]:
                     fmt_money(sell.potential_gain),
                 ),
                 row("R/R réel", fmt_ratio(buy.real_rr), fmt_ratio(sell.real_rr)),
-                row(
-                    "Taux de réussite minimum",
-                    fmt_percent(buy.min_win_rate),
-                    fmt_percent(sell.min_win_rate),
-                ),
                 row("Contrôle du risque", buy.risk_check, sell.risk_check),
             ],
         },
     ]
 
 
+def fmt_trade_fraction(value: float | None) -> str:
+    """« 4 sur 5 », uniquement quand la fraction est exacte.
+
+    Une fraction approchée pourrait se situer sous le seuil affiché et
+    recommander un taux de réussite trop faible : on ne propose donc la
+    fraction que si elle tombe exactement sur la valeur.
+    """
+    if value is None or value <= 0 or value > 1:
+        return ""
+    fraction = Fraction(value).limit_denominator(10)
+    if abs(float(fraction) - value) > 1e-9:
+        return ""
+    return f"{fraction.numerator} sur {fraction.denominator}"
+
+
+def describe_win_rate(scenario) -> str:
+    """Décrit le taux de réussite minimum d'un scénario."""
+    if scenario.min_win_rate is None:
+        if scenario.realistic_risk == 0:
+            return "non défini (volume nul)"
+        if scenario.real_rr == -1:
+            return "non défini (R/R réel = -1)"
+        return "non défini"
+    fraction = fmt_trade_fraction(scenario.min_win_rate)
+    if fraction:
+        return f"{fmt_percent(scenario.min_win_rate)} ({fraction} trades)"
+    return f"au moins {fmt_percent(scenario.min_win_rate)} des trades"
+
+
+def build_win_rate(plan: Plan) -> dict[str, str]:
+    """Bloc « taux de réussite minimum », présenté hors du tableau de résultats."""
+    buy, sell = plan.buy, plan.sell
+    buy_text, sell_text = describe_win_rate(buy), describe_win_rate(sell)
+
+    if buy_text == sell_text:
+        detail = f"Il faut gagner {buy_text} pour ne pas perdre d'argent."
+    else:
+        detail = f"Il faut gagner {buy_text} pour l'achat, et {sell_text} pour la vente."
+
+    return {
+        "buy": fmt_percent(buy.min_win_rate),
+        "sell": fmt_percent(sell.min_win_rate),
+        "detail": detail,
+        "explanation": (
+            "Un taux élevé est exigeant : 80 %, c'est 4 trades gagnants sur 5 pour ne "
+            "pas perdre d'argent. Un taux bas est confortable : 25 %, c'est 1 trade "
+            "gagnant sur 4."
+        ),
+    }
+
+
 def build_notes(plan: Plan) -> list[str]:
     """Explications affichées sous les résultats."""
-    notes = ["Les montants de risque sont négatifs : ils représentent une perte."]
+    notes: list[str] = []
+    if any(s.theoretical_risk < 0 or s.realistic_risk < 0 for s in plan.scenarios):
+        notes.append("Les montants de risque sont négatifs : ils représentent une perte.")
     if any(s.real_rr is not None and s.real_rr < 0 for s in plan.scenarios):
         notes.append(
-            "R/R réel négatif : un taux de réussite minimum supérieur à 100 % signifie "
-            "que l'espérance du trade est négative — aucun taux de réussite ne le rend "
-            "rentable."
+            "R/R réel négatif : le taux de réussite minimum dépasse 100 % — il est "
+            "indéfini si le R/R réel vaut -1. L'espérance du trade est négative : aucun "
+            "taux de réussite ne le rend rentable."
         )
     return notes
 
@@ -216,6 +265,7 @@ def _context(request, values, errors, plan=None):
             else []
         ),
         "result_groups": build_result_groups(plan) if plan else [],
+        "win_rate": build_win_rate(plan) if plan else None,
         "notes": build_notes(plan) if plan else [],
     }
 

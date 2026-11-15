@@ -41,7 +41,9 @@ Les calculs reproduisent le comportement du modèle de référence :
 * risque réaliste = (stop loss + spread + slippage) × valeur du pip ;
 * gain potentiel = (stop loss × R/R visé − spread) × valeur du pip ;
 * R/R réel = gain potentiel ÷ risque réel ;
-* taux de réussite minimum = 1 ÷ (1 + R/R réel) ;
+* taux de réussite minimum = 1 ÷ (1 + R/R réel), affiché dans un bloc dédié
+  sous les résultats : c'est la part de trades à gagner pour ne pas perdre
+  d'argent ;
 * contrôle du risque, dans cet ordre : volume inférieur au pas minimum, risque
   réel supérieur au risque max, marge requise supérieure à la marge disponible.
 

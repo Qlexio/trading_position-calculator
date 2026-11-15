@@ -9,6 +9,7 @@ fraction décimale (0.01 = 1 %), comme dans le modèle d'origine.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -76,6 +77,9 @@ def _check(field: Field, raw: str) -> float:
     except ValueError:
         raise ValidationError([f"{field.label} : doit être un nombre."]) from None
 
+    if not math.isfinite(value):
+        raise ValidationError([f"{field.label} : doit être un nombre fini."])
+
     if field.minimum_inclusive:
         too_small = value < field.minimum
     else:
@@ -129,7 +133,7 @@ def _check_combinations(values: dict[str, float]) -> list[str]:
     if entry_price <= 0:
         errors.append(
             "Le prix d'entrée de vente doit rester strictement positif : réduisez la "
-            "distance d'entrée ou le prix actuel."
+            "distance d'entrée ou la taille du pip, ou augmentez le cours actuel."
         )
 
     return errors
