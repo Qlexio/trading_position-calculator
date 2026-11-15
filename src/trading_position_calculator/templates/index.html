@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculateur de positions CFD</title>
+  <style>
+    :root {
+      --ink: #1b1b1b;
+      --muted: #5c5c5c;
+      --line: #d4d4d4;
+      --bg: #fbfbfa;
+      --accent: #1f4e79;
+      --warn: #8a2b2b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+      max-width: 68rem;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+    h2 { font-size: 1.25rem; margin: 2.5rem 0 1rem; }
+    .lead { color: var(--muted); margin: 0 0 2rem; }
+    fieldset {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1rem 1.25rem 1.25rem;
+      margin: 0 0 1.25rem;
+      background: #fff;
+    }
+    legend { font-weight: 600; padding: 0 .4rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+      gap: .85rem 1.5rem;
+    }
+    label { display: block; font-size: .9rem; font-weight: 600; margin-bottom: .2rem; }
+    .unit { font-weight: 400; color: var(--muted); }
+    input {
+      width: 100%;
+      padding: .45rem .55rem;
+      font: inherit;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #fff;
+    }
+    button {
+      font: inherit;
+      font-weight: 600;
+      padding: .6rem 1.5rem;
+      border: 0;
+      border-radius: 4px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #17395a; }
+    .errors {
+      border: 1px solid var(--warn);
+      border-left-width: 4px;
+      border-radius: 4px;
+      padding: .75rem 1rem;
+      margin: 0 0 1.5rem;
+      background: #fdf3f3;
+    }
+    .errors h3 { margin: 0 0 .4rem; font-size: 1rem; color: var(--warn); }
+    .errors ul { margin: 0; padding-left: 1.2rem; }
+    .derived { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    .derived div {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: .6rem .9rem;
+      background: #fff;
+    }
+    .derived span { display: block; font-size: .85rem; color: var(--muted); }
+    .derived strong { font-size: 1.05rem; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    caption { text-align: left; font-weight: 600; padding: .5rem 0; }
+    th, td { padding: .45rem .7rem; border-bottom: 1px solid var(--line); text-align: left; }
+    thead th { border-bottom: 2px solid var(--line); font-size: .9rem; }
+    tbody th { font-weight: 500; }
+    td { font-variant-numeric: tabular-nums; }
+    tr.group th {
+      background: #eef2f6;
+      font-weight: 600;
+      font-size: .9rem;
+      padding-top: .7rem;
+      border-bottom: 1px solid var(--line);
+    }
+    tbody tr:hover td, tbody tr:hover th { background: #f6f8fa; }
+    footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <h1>Calculateur de positions CFD</h1>
+  <p class="lead">
+    Saisissez les paramètres du trade : le plan d'entrée, le volume et les
+    niveaux de stop et d'objectif sont calculés en direct.
+  </p>
+
+  <form method="post" action="/">
+    {% for title, names in groups %}
+    <fieldset>
+      <legend>{{ title }}</legend>
+      <div class="grid">
+        {% for name in names %}
+        {% set field = fields[name] %}
+        <div>
+          <label for="{{ name }}">
+            {{ field.label }} <span class="unit">({{ field.unit }})</span>
+          </label>
+          <input
+            type="number"
+            id="{{ name }}"
+            name="{{ name }}"
+            step="{{ field.step }}"
+            value="{{ values[name] }}"
+            required>
+        </div>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endfor %}
+    <button type="submit">Calculer</button>
+  </form>
+
+  {% if errors %}
+  <div class="errors">
+    <h3>Le formulaire contient {{ errors|length }} erreur(s)</h3>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if plan %}
+  <h2>Résultats</h2>
+
+  <div class="derived">
+    {% for label, value in derived %}
+    <div>
+      <span>{{ label }}</span>
+      <strong>{{ value }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+
+  <table>
+    <caption>Plan de trade — comparaison achat / vente</caption>
+    <thead>
+      <tr>
+        <th scope="col">Mesure</th>
+        <th scope="col">Achat</th>
+        <th scope="col">Vente</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in result_groups %}
+      <tr class="group">
+        <th colspan="3">{{ group.title }}</th>
+      </tr>
+      {% for row in group.rows %}
+      <tr>
+        <th scope="row">{{ row.label }}</th>
+        <td>{{ row.buy }}</td>
+        <td>{{ row.sell }}</td>
+      </tr>
+      {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <footer>
+    Calculs reproduits depuis le modèle de référence
+    <code>reference.ods</code> (modèle de référence). Application locale :
+    aucune donnée n'est envoyée sur Internet.
+  </footer>
+</body>
+</html>

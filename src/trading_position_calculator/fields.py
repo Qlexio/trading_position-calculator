@@ -1,0 +1,103 @@
+"""Description des paramètres saisis et validation des entrées du formulaire.
+
+Ce module est la source unique des champs : il sert à la fois à afficher le
+formulaire (``app.py``) et à convertir la saisie en objet ``Parameters``.
+
+Unités : chaque champ est exprimé dans l'unité d'origine du modèle. Les pourcentages sont donc saisis en
+fraction décimale (0.01 = 1 %), comme dans le modèle d'origine.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+from .calculations import Parameters
+
+
+@dataclass(frozen=True)
+class Field:
+    """Un champ du formulaire."""
+
+    name: str
+    label: str
+    unit: str
+    default: str
+    step: str
+    minimum: float
+    minimum_inclusive: bool
+    maximum: float | None = None
+
+
+FIELDS: tuple[Field, ...] = (
+    Field("capital", "Capital du compte", "$", "181.31", "0.01", 0, False),
+    Field(
+        "risk_per_trade", "Risque par trade", "fraction (0.01 = 1 %)", "0.01", "0.0001", 0, True, 1
+    ),
+    Field("pip_size", "Taille d'un pip (en prix)", "en prix", "0.0001", "0.0001", 0, False),
+    Field("contracts_per_lot", "Contrats par lots", "contrats", "100000", "1", 0, False),
+    Field("leverage", "Levier", "x", "30", "1", 0, False),
+    Field("current_price", "Cours actuel", "prix", "1.1055", "0.0001", 0, False),
+    Field("entry_distance_pips", "Distance d'entrée (pips)", "pips", "2", "0.1", 0, True),
+    Field("stop_loss_pips", "Stop loss (pips)", "pips", "1", "0.1", 0, True),
+    Field("target_rr", "Ratio R/R visé", "x", "2", "0.1", 0, True),
+    Field("spread_pips", "Spread à l'annonce (pips)", "pips", "1.2", "0.1", 0, True),
+    Field("slippage_pips", "Slippage prévu (pips)", "pips", "1", "0.1", 0, True),
+    Field("lot_step", "Lot minimum / pas", "lots", "0.01", "0.01", 0, False),
+    Field("free_margin", "Marge disponible", "$", "130", "0.01", 0, True),
+)
+
+FIELDS_BY_NAME = {f.name: f for f in FIELDS}
+
+
+class ValidationError(Exception):
+    """Saisie invalide : ``errors`` contient les messages, en français."""
+
+    def __init__(self, errors: list[str]) -> None:
+        super().__init__("; ".join(errors))
+        self.errors = errors
+
+
+def _check(field: Field, raw: str) -> float:
+    text = (raw or "").strip()
+    if not text:
+        raise ValidationError([f"{field.label} : champ obligatoire."])
+    try:
+        value = float(text.replace(",", "."))
+    except ValueError:
+        raise ValidationError([f"{field.label} : doit être un nombre."]) from None
+
+    if field.minimum_inclusive:
+        too_small = value < field.minimum
+    else:
+        too_small = value <= field.minimum
+    if too_small:
+        if field.minimum == 0:
+            raise ValidationError([f"{field.label} : doit être strictement positif."])
+        raise ValidationError([f"{field.label} : doit être supérieur ou égal à {field.minimum}."])
+    if field.maximum is not None and value > field.maximum:
+        raise ValidationError([f"{field.label} : doit être compris entre 0 et {field.maximum}."])
+    return value
+
+
+def parse_parameters(data: Mapping[str, object]) -> Parameters:
+    """Convertit une saisie brute en ``Parameters``.
+
+    Lève ``ValidationError`` avec la liste des messages si un ou plusieurs
+    champs sont invalides.
+    """
+    values: dict[str, float] = {}
+    errors: list[str] = []
+    for field in FIELDS:
+        try:
+            values[field.name] = _check(field, str(data.get(field.name, "")))
+        except ValidationError as exc:
+            errors.extend(exc.errors)
+    if errors:
+        raise ValidationError(errors)
+    return Parameters(**values)
+
+
+def default_values() -> dict[str, str]:
+    """Valeurs par défaut du formulaire."""
+    return {f.name: f.default for f in FIELDS}
