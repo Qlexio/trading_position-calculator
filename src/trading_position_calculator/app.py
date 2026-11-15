@@ -248,14 +248,20 @@ def build_win_rate(plan: Plan) -> dict[str, str]:
             detail = f"Il faut gagner {buy_text} pour l'achat, et {sell_text} pour la vente."
 
     rate = buy.min_win_rate if buy.min_win_rate is not None else sell.min_win_rate
-    if rate is not None and rate >= 0.5:
+    if rate is None:
+        explanation = ""
+    elif rate > 1:
         explanation = (
-            "Un taux élevé est exigeant : 80 %, c'est 4 trades gagnants sur 5 pour ne "
-            "pas perdre d'argent."
+            "Ce seuil est inatteignable : aucun taux de réussite ne rend ce trade rentable."
+        )
+    elif rate >= 0.5:
+        explanation = (
+            "Ce seuil est exigeant : la plupart de vos trades doivent être gagnants "
+            "pour ne pas perdre d'argent."
         )
     else:
         explanation = (
-            "Un taux bas est confortable : 25 %, c'est 1 trade gagnant sur 4 pour ne pas "
+            "Ce seuil est confortable : une petite part de vos trades suffit à ne pas "
             "perdre d'argent."
         )
 

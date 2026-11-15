@@ -120,6 +120,17 @@
     niveaux de stop et d'objectif sont calculés en direct.
   </p>
 
+  {% if errors %}
+  <div class="errors">
+    <h3>Le formulaire contient {{ errors|length }} erreur(s)</h3>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
   <form method="post" action="/">
     {% for title, names in groups %}
     <fieldset>
@@ -150,17 +161,6 @@
     {% endfor %}
     <button type="submit">Calculer</button>
   </form>
-
-  {% if errors %}
-  <div class="errors">
-    <h3>Le formulaire contient {{ errors|length }} erreur(s)</h3>
-    <ul>
-      {% for error in errors %}
-      <li>{{ error }}</li>
-      {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
 
   {% if plan %}
   <h2>Résultats</h2>
