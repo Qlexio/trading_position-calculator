@@ -73,7 +73,12 @@ que sur les valeurs de sortie correspondantes.
 ## Tests
 
 La suite de tests vit dans `tests/` et compare les résultats au modèle de
-référence.
+référence. Les valeurs de référence peuvent être extraites dans un JSON compact
+avec :
+
+```bash
+uv run python tools/extract_reference.py --sheet Sheet2 --output tests/reference.json
+```
 
 ```bash
 uv run pytest

@@ -11,3 +11,6 @@ wheels/
 
 # Internal documentation
 reference.ods
+
+# Extrait du modèle de référence (régénéré par tools/extract_reference.py)
+tests/reference.json
