@@ -89,7 +89,7 @@ wheels = [
 ]
 
 [[package]]
-name = "workspace"
+name = "trading-position-calculator"
 version = "0.1.0"
 source = { editable = "." }
 
