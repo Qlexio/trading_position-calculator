@@ -3,8 +3,8 @@
 Ce module est la source unique des champs : il sert à la fois à afficher le
 formulaire (``app.py``) et à convertir la saisie en objet ``Parameters``.
 
-Unités : chaque champ est exprimé dans l'unité d'origine du modèle. Les pourcentages sont donc saisis en
-fraction décimale (0.01 = 1 %), comme dans le modèle d'origine.
+Unités : chaque champ est exprimé dans l'unité d'origine du modèle. Les
+pourcentages sont donc saisis en fraction décimale (0.01 = 1 %).
 """
 
 from __future__ import annotations
@@ -135,8 +135,8 @@ def parse_parameters(data: Mapping[str, object]) -> Parameters:
 def _check_combinations(values: dict[str, float]) -> tuple[list[str], list[tuple[str, str]]]:
     """Règles de cohérence portant sur plusieurs champs à la fois.
 
-    Ces deux combinaisons rendent un calcul indéfini (division par
-    zéro) ; elles sont refusées plutôt que d'inventer un comportement non défini.
+    Ces deux combinaisons rendent un calcul indéfini (division par zéro) ;
+    elles sont refusées plutôt que d'inventer un comportement non défini.
     """
     errors: list[str] = []
     owners: list[tuple[str, str]] = []

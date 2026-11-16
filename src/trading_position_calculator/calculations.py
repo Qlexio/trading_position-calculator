@@ -1,18 +1,15 @@
 """Calcul du plan de trading CFD.
 
-Logique pure, sans aucune dépendance web. Reproduit le comportement calculé
-du modèle de référence.
+Logique pure, sans aucune dépendance web.
 
+Le plan se déduit des 13 paramètres saisis :
 
+* le risque maximal autorisé par trade = capital du compte x risque par trade ;
+* la valeur d'un pip pour un lot = contrats par lot x taille d'un pip.
 
-
-
-
-
-
-
-
-
+Chaque scénario (achat et vente) en déduit ensuite le prix d'entrée, le stop
+loss, le take profit, le point mort, le volume, l'exposition, la marge
+requise, les risques, le gain potentiel, le R/R réel et le contrôle du risque.
 
 Les valeurs sont conservées en précision maximale ; l'arrondi n'est appliqué
 qu'à l'affichage (voir ``app.py``).
@@ -40,7 +37,7 @@ SELL = -1
 #: sans tolérance ferait perdre un lot sur un volume mathématiquement entier.
 FLOOR_EPSILON = 1e-9
 
-#: Libellés du contrôle de risque, affichés tels quels dans l'interface.
+#: Libellés du contrôle du risque, affichés tels quels dans l'interface.
 RISK_CHECK_OK = "OK"
 RISK_CHECK_VOLUME = "Volume < minimum"
 RISK_CHECK_RISK = "Trop risqué"
@@ -104,9 +101,9 @@ class Scenario:
 def floor_to_step(value: float, step: float) -> float:
     """Arrondit ``value`` à la baisse sur un multiple de ``step``.
 
-    Le volume est un multiple du pas de lot, arrondi à la baisse,
-    avec la tolérance ``FLOOR_EPSILON`` qui évite de perdre un lot sur un
-    rapport entier mal représenté en virgule flottante.
+    Le volume est un multiple du pas de lot, arrondi à la baisse, avec la
+    tolérance ``FLOOR_EPSILON`` qui évite de perdre un lot sur un rapport
+    entier mal représenté en virgule flottante.
     """
     return math.floor(value / step + FLOOR_EPSILON) * step
 
