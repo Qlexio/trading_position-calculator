@@ -29,5 +29,5 @@ dev = [
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 100
+line-length = 160
 src = ["src", "tests"]
