@@ -150,6 +150,15 @@ def _check_combinations(values: dict[str, float]) -> tuple[list[str], list[tuple
         errors.append(message)
         owners.append(("stop_loss_pips", message))
 
+    if values["free_margin"] > values["capital"]:
+        message = (
+            f"La marge disponible ({values['free_margin']:g}) ne peut pas dépasser le "
+            f"capital du compte ({values['capital']:g}) : le capital est le montant total "
+            "de trésorerie disponible."
+        )
+        errors.append(message)
+        owners.append(("free_margin", message))
+
     entry_price = values["current_price"] - values["entry_distance_pips"] * values["pip_size"]
     if entry_price <= 0:
         message = (

@@ -72,14 +72,17 @@ Héritages, choix d'arrondi et limites :
   entier est arrondie à l'entier supérieur. La tolérance est volontairement
   orientée pour ne jamais sous-estimer le volume.
 
-Deux saisies sont refusées par l'application alors que le modèle les accepte :
+Trois saisies sont refusées par l'application alors que le modèle les accepte :
 
 * stop loss, spread et slippage tous nuls : le modèle produit `#DIV/0!`
   (division par zéro sur R20 et S21) ; l'application refuse avec un message
   explicite ;
 * prix d'entrée de vente (cours actuel − distance d'entrée × taille du pip)
   inférieur ou égal à zéro : le modèle calcule un volume négatif et des
-  sorties incohérentes ; l'application refuse avec un message explicite.
+  sorties incohérentes ; l'application refuse avec un message explicite ;
+* marge disponible supérieure au capital du compte : le capital est le montant
+  total de trésorerie, la marge disponible est la part encore libre ; le
+  modèle ne le vérifie pas.
 
 ### Incertitudes ouvertes
 
